@@ -1,0 +1,2 @@
+# arrql
+SQL for arrays.
