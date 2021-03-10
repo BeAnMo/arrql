@@ -48,6 +48,27 @@ Query.prototype.where = function (predicate) {
     return this;
 };
 
+Query.prototype.orderBy = function (direction, ...selectors) {
+    this.ordering = (a, b) => {
+        let final = 0;
+
+        for (let i = 0; i < selectors.length; i++) {
+            const selector = selectors[i];
+            const compared = direction(selector(a), selector(b));
+
+            if (compared !== 0) {
+                return compared;
+            } else {
+                final = compared;
+            }
+        }
+
+        return final;
+    };
+
+    return this;
+};
+
 Query.prototype.groupBy = function (...selectors) {
     this.groupKeys = getKeys(selectors);
     this.grouping = (acc, p) => {
@@ -104,3 +125,6 @@ export const select = (...selectors) => {
 
     return q.select(...selectors);
 };
+
+export const desc = (a, b) => b - a;
+export const asc = (a, b) => a - b;

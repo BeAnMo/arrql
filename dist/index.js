@@ -54,6 +54,27 @@
         return this;
     };
 
+    Query.prototype.orderBy = function (direction, ...selectors) {
+        this.ordering = (a, b) => {
+            let final = 0;
+
+            for (let i = 0; i < selectors.length; i++) {
+                const selector = selectors[i];
+                const compared = direction(selector(a), selector(b));
+
+                if (compared !== 0) {
+                    return compared;
+                } else {
+                    final = compared;
+                }
+            }
+
+            return final;
+        };
+
+        return this;
+    };
+
     Query.prototype.groupBy = function (...selectors) {
         this.groupKeys = getKeys(selectors);
         this.grouping = (acc, p) => {
@@ -109,40 +130,56 @@
         return q.select(...selectors);
     };
 
-    const sum = (selector) => {
-        const name = `sum(${selector.name})`;
+    const bindSelectorName = (selector, name) => {
         const wrap = {
-            [name]({ _values }) {
-                return _values.reduce((acc, p) => {
-                    const curr = selector(p);
-
-                    return acc + curr;
-                }, 0);
-            },
+            [name](row) {
+                return selector(row);
+            }
         };
 
         return wrap[name];
     };
 
-    const avg = selector => {
-        const name = `avg(${selector.name})`;
-        const wrap = {
-            [name]({ _values }) {
-                let total = 0;
-                let avg = 0;
+    const nameOf = selector => selector.name;
 
-                _values.forEach((val, i) => {
-                    total += selector(p);
+    const count = selector => bindSelectorName(
+        ({ _values }) => {
+            return _values.reduce((acc, p) => {
+                selector(p);
 
-                    avg = total / (i + 1);
-                });
+                return acc + 1;
+            }, 0);
+        },
+        `COUNT(${selector.name})`
+    );
 
-                return avg;
-            },
-        };
 
-        return wrap[name];
-    };
+    const sum = selector => bindSelectorName(
+        ({ _values }) => {
+            return _values.reduce((acc, p) => {
+                const curr = selector(p);
+
+                return acc + curr;
+            }, 0);
+        },
+        `SUM(${selector.name})`
+    );
+
+    const avg = selector => bindSelectorName(
+        ({ _values }) => {
+            let total = 0;
+            let avg = 0;
+
+            _values.forEach((val, i) => {
+                total += selector(p);
+
+                avg = total / (i + 1);
+            });
+
+            return avg;
+        },
+        `AVG(${selector.name})`
+    );
 
     const equal = (selector, value) => (p) => selector(p) === value;
 
@@ -162,16 +199,29 @@
         }
     };
 
+    const as = (selector, asName) => bindSelectorName(selector, asName);
+
+    const toFixed = (n, places) => parseFloat(n.toFixed(places));
+
+    const round = (selector, places) => bindSelectorName(
+        row => toFixed(selector(row)),
+        `ROUND(${selector.name})`
+    );
+
     exports.Query = Query;
     exports.and = and;
+    exports.as = as;
     exports.avg = avg;
+    exports.count = count;
     exports.equal = equal;
     exports.gt = gt;
     exports.gte = gte;
     exports.like = like;
     exports.lt = lt;
     exports.lte = lte;
+    exports.nameOf = nameOf;
     exports.or = or;
+    exports.round = round;
     exports.select = select;
     exports.sum = sum;
 
