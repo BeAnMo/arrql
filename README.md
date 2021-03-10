@@ -2,3 +2,20 @@
 
 # arrql
 SQL for arrays.
+
+```js
+import { select, avg } from 'arrql';
+
+const name = row => row.name;
+const age = row => row.age;
+const favoriteColor = row => row.color;
+
+const table = [
+    // ...
+];
+
+select(favoriteColor, avg(avg))
+    .from(table)
+    .groupBy(favoriteColor)
+    .exec();
+```
